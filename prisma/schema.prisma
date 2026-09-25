@@ -1,0 +1,45 @@
+// Hills and lists aren't here: they're a committed extract of DoBIH
+// (src/data/hills.json). The database holds only what a person did.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Only the owner can sign in for now (see ROADMAP.md), but progress is kept
+// per person so opening the app to others later doesn't mean reworking it.
+model User {
+  id       String  @id @default(cuid())
+  // The GitHub account's numeric id, which unlike the username never changes.
+  githubId String  @unique
+  name     String?
+
+  ascents   Ascent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Ascent {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // A DoBIH hill number. Not a foreign key: hill data lives in the app, not the
+  // database. Writes are checked against it instead.
+  hillId    Int
+  // A calendar date, not an instant: "climbed on 12 September" needs no time zone.
+  climbedOn DateTime @db.Date
+  // Private to the owner; never shown on public pages.
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One record per hill: the date it was bagged. Repeat ascents would drop this.
+  @@unique([userId, hillId])
+  @@index([userId, climbedOn])
+}

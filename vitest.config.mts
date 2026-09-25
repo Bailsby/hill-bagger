@@ -7,5 +7,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // Database tests need Postgres; they run separately via `npm run test:db`.
+    exclude: ['**/node_modules/**', '**/*.db.test.ts'],
   },
 })

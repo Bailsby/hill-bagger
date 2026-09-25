@@ -1,0 +1,26 @@
+# Local development database.
+#
+# Postgres 17 to match Neon. Published on 5434 so it can run alongside the
+# other projects' local databases (5432, 5433) without a port clash.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: hill-bagger-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hill_bagger
+    ports:
+      - "5434:5432"
+    volumes:
+      - hill-bagger-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Lets `docker compose up --wait` block until Postgres accepts connections.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hill_bagger"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  hill-bagger-pgdata:
