@@ -1,7 +1,8 @@
 # Hill Bagger — Roadmap
 
-A map and checklist for "bagging" British hill lists: tick off each summit as you climb it
-and watch the lists fill in. It starts with six lists:
+A map and checklist for "bagging" British hill lists: record each summit as you climb it
+and watch the lists fill in. It's one person's record, public to view, and it starts with
+six lists:
 
 | List                   | Where               | Hills |
 | ---------------------- | ------------------- | ----- |
@@ -42,8 +43,8 @@ lists, so each is defined in this repo as a list of DoBIH hill numbers. Every su
 figures therefore come from one survey, whichever list it is reached through.
 
 The data is small (a few hundred summits), so it's generated into a static JSON file by
-a script and committed. The app needs no database to show the lists or the map, and a
-DoBIH update is a script run plus a reviewable diff.
+a script and committed. The database holds only what someone did, never the hills
+themselves, and a DoBIH update is a script run plus a reviewable diff.
 
 DoBIH is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The
 attribution it asks for (database name, version and a link) is in the README and
@@ -64,34 +65,55 @@ How the three hand-defined lists were pinned down, against DoBIH v18.6:
   summit either Wether Fell or Drumaldrace, which is the same hill.
 - **Yorkshire Three Peaks**: Whernside, Ingleborough and Pen-y-ghent.
 
-## Progress starts on the device
+## One person's record, public to view
 
-Phase one stores ticks in the browser. There's no sign-up, so it works the moment the
-page opens. The cost is that progress doesn't follow someone between phone and laptop.
-Export and import (a small JSON file) bridge that until accounts exist.
+This is a personal tracker, not a service. Anyone can browse the lists and see what its
+owner has climbed and when; only the owner can sign in and record climbs.
 
-Progress is kept behind a small storage interface (read the set, add, remove), so adding
-server-side storage later changes where ticks are kept, not the code that uses them. When
-accounts arrive, a first sign-in merges the device's ticks into the account rather than
-choosing one over the other.
+- **A climb is a hill and a date.** Dates are what make "progress over time" possible,
+  so they're recorded from the start rather than bolted on. A climb is stored as a
+  calendar date, not a timestamp: "climbed on 12 September" shouldn't shift by a day for
+  someone reading it in another time zone.
+- **Notes are private.** Dates are public; notes (route, weather, company) are shown only
+  to the owner, and public pages never load them.
+- **Progress lives in Postgres**, so it's the same on every device and survives a
+  cleared browser. Browser storage was the original plan and was dropped for that reason.
+- **One record per hill.** It holds the date the hill was bagged. Recording repeat
+  ascents would mean relaxing one unique constraint, not reshaping the data.
+
+### Sign-in: GitHub, owner only
+
+Sign-in is through GitHub, restricted to one account, identified by GitHub's numeric user
+id. Usernames can be changed and later reused; the id can't. Email sign-in links would
+need a mail provider and a verified sending domain. An OAuth app is simpler and holds no
+password.
+
+Anyone else is refused at the sign-in callback and never gets a session. Every write
+checks the session again anyway, because a server action can be called directly and
+shouldn't trust that the page hid its buttons. With the owner's id unset, nobody can
+sign in: a misconfigured deployment is read-only rather than open.
+
+Climbs are still stored against a user record, not globally. Opening the app to other
+people later would add sign-up and per-person pages, without reworking the data.
 
 ## Done
 
 1. **Data.** DoBIH import script, the six lists (636 distinct hills), and tests that
    check list sizes, that ids resolve, and that the overlaps come out as expected.
+2. **Lists and progress.** Public overview and list pages, with progress per list, the
+   most recent climbs, and search, filter and sort on each list. GitHub sign-in for the
+   owner, who can record a climb with its date and private notes, correct it, or remove
+   it. Database tests run against real Postgres.
 
 ## Planned
 
 Roughly in order.
 
-2. **Lists and ticking.** Browse each list sorted by name or height, tick hills off,
-   and see progress per list. Stored on the device, with export and import.
-3. **Map.** Every summit on a map, coloured by done or not done, filterable by list,
-   and tickable from the map. The mapping library and tile provider are still to be
-   chosen: free-tier limits and licence terms decide it.
-4. **Accounts and sync.** Email-link sign-in with no password, and progress stored
-   server-side and merged with the device on first sign-in.
-5. **Extras.** Date climbed and notes per hill, and a shareable progress summary.
+3. **Map.** Every summit on a map, coloured by climbed or not, filterable by list. The
+   mapping library and tile provider are still to be chosen: free-tier limits and licence
+   terms decide it.
+4. **Progress over time.** Climbs per year, how each list filled in, and a timeline.
+5. **Extras.** Photos per climb, a shareable progress summary, and perhaps repeat ascents.
 
 ## Deliberately out of scope
 

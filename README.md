@@ -1,22 +1,38 @@
 # Hill Bagger
 
-A map and checklist for bagging British hill lists — Munros, Wainwrights, the Welsh
-3000s, Ethels, the Yorkshire Three Peaks and the Dales 30. Tick off each summit as you
-climb it and watch every list it belongs to fill in.
+A personal record of bagging British hill lists: the Munros, Wainwrights, Welsh
+3000s, Ethels, Yorkshire Three Peaks and Dales 30. Every climb is recorded with its date,
+and a hill on several lists counts on each of them. Anyone can browse the lists and see
+the progress; only the owner can sign in to record climbs.
 
-**Status: early development.** See [ROADMAP.md](ROADMAP.md) for the plan and the
-design decisions behind it.
+**Status: in development.** See [ROADMAP.md](ROADMAP.md) for the plan and the design
+decisions behind it.
 
 ## Running it locally
 
-Requires Node 24.
+Requires Node 24 and Docker.
 
 ```bash
+cp .env.example .env              # then fill it in (see below)
+docker compose up -d --wait       # Postgres on port 5434
 npm install
-npm run dev      # http://localhost:3000
+npx prisma migrate dev
+npm run dev                       # http://localhost:3000
 ```
 
-`npm test` runs the tests; `npm run lint` and `npm run typecheck` check the code.
+The lists and progress are viewable without signing in. To record climbs you need:
+
+- `AUTH_SECRET`: any random value, e.g. `openssl rand -base64 33`.
+- A **GitHub OAuth app** for local use. Create it at
+  [github.com/settings/developers](https://github.com/settings/developers) with the
+  callback URL `http://localhost:3000/api/auth/callback/github`, then set
+  `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`.
+- `OWNER_GITHUB_ID`: the numeric id of the one GitHub account allowed to sign in, from
+  `https://api.github.com/users/<username>`.
+
+`npm test` runs the unit tests, and `npm run test:db` runs the database tests on a
+separate test database, which it creates automatically. `npm run lint` and
+`npm run typecheck` check the code.
 
 ## Hill data
 
