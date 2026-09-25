@@ -1,69 +1,111 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ProgressBar } from "@/components/progress-bar";
+import { formatCalendarDate } from "@/lib/dates";
+import { formatHeight } from "@/lib/format";
+import { hillLists, hillsById, listProgress, listsContaining } from "@/lib/hills";
+import { getProgress } from "@/lib/progress";
 
-export default function Home() {
+const RECENT = 8;
+
+export default async function Home() {
+  const { ownerName, ascents, history, canEdit } = await getProgress();
+  const firstName = ownerName?.split(" ")[0];
+  const climbed = new Set(ascents.keys());
+  const complete = hillLists.filter((list) => {
+    const { done, total } = listProgress(list, climbed);
+    return done === total;
+  }).length;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main>
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+        {firstName ? `${firstName}’s hill bagging` : "Hill bagging"}
+      </h1>
+      <p className="mt-2 text-muted">
+        Progress across six British hill lists. A hill on more than one list counts on each.
+      </p>
+
+      <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-line bg-surface p-4">
+          <dt className="text-sm text-muted">Hills climbed</dt>
+          <dd className="mt-1 text-2xl font-semibold tabular-nums">{ascents.size}</dd>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="rounded-xl border border-line bg-surface p-4">
+          <dt className="text-sm text-muted">Lists complete</dt>
+          <dd className="mt-1 text-2xl font-semibold tabular-nums">
+            {complete} <span className="text-base font-normal text-muted">of {hillLists.length}</span>
+          </dd>
         </div>
-      </main>
-    </div>
+        <div className="col-span-2 rounded-xl border border-line bg-surface p-4 sm:col-span-1">
+          <dt className="text-sm text-muted">Latest</dt>
+          <dd className="mt-1 font-semibold">
+            {history[0] ? (
+              <>
+                {hillsById.get(history[0].hillId)?.name}
+                <span className="block text-sm font-normal text-muted">
+                  {formatCalendarDate(history[0].climbedOn)}
+                </span>
+              </>
+            ) : (
+              <span className="font-normal text-muted">Nothing yet</span>
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      <h2 className="mt-12 text-xl font-semibold">Lists</h2>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+        {hillLists.map((list) => {
+          const { done, total } = listProgress(list, climbed);
+          return (
+            <li key={list.id}>
+              <Link
+                href={`/lists/${list.id}`}
+                className="block h-full rounded-xl border border-line bg-surface p-5 transition hover:border-brand focus-visible:outline-2 focus-visible:outline-brand"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="font-semibold">{list.name}</h3>
+                  <span className="text-sm text-muted">{list.region}</span>
+                </div>
+                <div className="mt-4">
+                  <ProgressBar done={done} total={total} label={`${list.name} climbed`} />
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <h2 className="mt-12 text-xl font-semibold">Recently climbed</h2>
+      {history.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-line bg-surface p-5 text-muted">
+          No climbs recorded yet.
+          {canEdit && " Open a list and mark the hills you've climbed."}
+        </p>
+      ) : (
+        <ol className="mt-4 divide-y divide-line rounded-xl border border-line bg-surface">
+          {history.slice(0, RECENT).map((ascent) => {
+            const hill = hillsById.get(ascent.hillId);
+            if (!hill) return null;
+            return (
+              <li key={ascent.hillId} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-3">
+                <div>
+                  <span className="font-medium">{hill.name}</span>
+                  <span className="ml-2 text-sm text-muted">{formatHeight(hill.metres)}</span>
+                  <span className="block text-sm text-muted">
+                    {listsContaining(hill.id)
+                      .map((list) => list.name)
+                      .join(" · ")}
+                  </span>
+                </div>
+                <time dateTime={ascent.climbedOn} className="text-sm tabular-nums text-muted">
+                  {formatCalendarDate(ascent.climbedOn)}
+                </time>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </main>
   );
 }
