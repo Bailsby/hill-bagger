@@ -93,7 +93,7 @@ export function HillList({
                   <p className="font-medium">{row.name}</p>
                   <p className="text-sm text-muted">
                     {formatHeight(row.metres)} · {row.area} ·{" "}
-                    <span className="font-mono text-xs">{formatGridRef(row.gridRef)}</span>
+                    <span className="whitespace-nowrap font-mono text-xs">{formatGridRef(row.gridRef)}</span>
                   </p>
                   {row.alsoOn.length > 0 && (
                     <p className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">

@@ -64,11 +64,11 @@ export function AscentEditor({
 
       <fieldset>
         <legend className="text-sm font-medium">When did you climb it?</legend>
-        <div className="mt-1 inline-flex flex-wrap rounded-lg border border-line bg-surface p-0.5">
+        <div className="mt-1 grid max-w-sm grid-cols-3 rounded-lg border border-line bg-surface p-0.5">
           {precisionOptions.map(([value, label]) => (
             <label
               key={value}
-              className="rounded-md px-3 py-1.5 text-sm has-[:checked]:bg-brand has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand/40"
+              className="rounded-md px-2 py-1.5 text-center text-sm whitespace-nowrap has-[:checked]:bg-brand has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand/40"
             >
               <input
                 type="radio"
