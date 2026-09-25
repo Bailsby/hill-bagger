@@ -43,7 +43,7 @@ export default async function ListPage({ params }: PageProps<"/lists/[listId]">)
   const { done, total } = listProgress(list, new Set(ascents.keys()));
 
   return (
-    <main>
+    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:py-12">
       <Link href="/" className="text-sm text-muted hover:text-ink">
         ← All lists
       </Link>
@@ -52,6 +52,12 @@ export default async function ListPage({ params }: PageProps<"/lists/[listId]">)
         <span className="text-muted">{list.region}</span>
       </div>
       <p className="mt-2 max-w-2xl text-muted">{list.description}</p>
+      <Link
+        href={`/map?list=${list.id}`}
+        className="mt-2 inline-block text-sm font-medium text-brand underline-offset-2 hover:underline"
+      >
+        View on a map →
+      </Link>
 
       <div className="mt-6 rounded-xl border border-line bg-surface p-5">
         <ProgressBar done={done} total={total} label={`${list.name} climbed`} size="lg" />

@@ -21,7 +21,7 @@ export default async function Home() {
   }).length;
 
   return (
-    <main>
+    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:py-12">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
         {firstName ? `${firstName}’s hill bagging` : "Hill bagging"}
       </h1>
@@ -55,7 +55,12 @@ export default async function Home() {
         </div>
       </dl>
 
-      <h2 className="mt-12 text-xl font-semibold">Lists</h2>
+      <div className="mt-12 flex items-baseline justify-between gap-4">
+        <h2 className="text-xl font-semibold">Lists</h2>
+        <Link href="/map" className="text-sm font-medium text-brand underline-offset-2 hover:underline">
+          View on a map →
+        </Link>
+      </div>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {hillLists.map((list) => {
           const { done, total } = listProgress(list, climbed);

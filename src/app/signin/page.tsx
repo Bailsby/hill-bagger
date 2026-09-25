@@ -21,7 +21,7 @@ export default async function SignIn({ searchParams }: PageProps<"/signin">) {
   const error = code ? (errors[code] ?? "Sign-in didn't work. Please try again.") : null;
 
   return (
-    <main className="mx-auto max-w-md">
+    <main className="mx-auto w-full max-w-md px-4 py-8 sm:py-12">
       <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
       <p className="mt-2 text-muted">
         This is a personal tracker. Only its owner can sign in to record climbs; everyone else
