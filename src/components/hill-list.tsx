@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { removeAscentAction, saveAscentAction, type ActionResult } from "@/app/actions";
-import { MAX_NOTES } from "@/lib/ascent-input";
-import { addDays, formatCalendarDate, type CalendarDate } from "@/lib/dates";
+import { useMemo, useState } from "react";
+import type { CalendarDate } from "@/lib/dates";
 import { formatGridRef, formatHeight } from "@/lib/format";
 import { viewHills, type ListRow, type Show, type SortKey } from "@/lib/list-view";
+import { AscentEditor } from "./ascent-editor";
+import { ClimbDateLabel } from "./climb-date-label";
+import { StatusIcon } from "./status-icon";
 
 const showOptions: [Show, string][] = [
   ["all", "All"],
@@ -110,9 +111,7 @@ export function HillList({
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   {row.ascent ? (
-                    <time dateTime={row.ascent.climbedOn} className="text-sm font-medium text-brand tabular-nums">
-                      {formatCalendarDate(row.ascent.climbedOn)}
-                    </time>
+                    <ClimbDateLabel climbed={row.ascent.climbed} className="text-sm font-medium text-brand tabular-nums" />
                   ) : (
                     <span className="text-sm text-muted">Not yet</span>
                   )}
@@ -129,126 +128,14 @@ export function HillList({
                 </div>
               </div>
               {canEdit && editing === row.id && (
-                <AscentEditor row={row} today={today} onClose={() => setEditing(null)} />
+                <div className="mt-3 sm:ml-8">
+                  <AscentEditor hill={row} ascent={row.ascent} today={today} onClose={() => setEditing(null)} />
+                </div>
               )}
             </li>
           ))}
         </ul>
       )}
     </section>
-  );
-}
-
-function StatusIcon({ climbed }: { climbed: boolean }) {
-  return climbed ? (
-    <svg viewBox="0 0 20 20" className="mt-0.5 size-5 shrink-0 text-brand" fill="currentColor" role="img" aria-label="Climbed">
-      <path
-        fillRule="evenodd"
-        d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.7-9.3a1 1 0 0 0-1.4-1.4L9 10.6 7.7 9.3a1 1 0 0 0-1.4 1.4l2 2a1 1 0 0 0 1.4 0l4-4Z"
-        clipRule="evenodd"
-      />
-    </svg>
-  ) : (
-    <svg viewBox="0 0 20 20" className="mt-0.5 size-5 shrink-0 text-line" fill="none" stroke="currentColor" strokeWidth={2} role="img" aria-label="Not yet climbed">
-      <circle cx="10" cy="10" r="7" />
-    </svg>
-  );
-}
-
-// onSubmit rather than a form action: React resets a form after an action
-// completes, which would wipe what was typed when the save is rejected.
-function AscentEditor({
-  row,
-  today,
-  onClose,
-}: {
-  row: ListRow;
-  today: CalendarDate;
-  onClose: () => void;
-}) {
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  const run = (action: (form: FormData) => Promise<ActionResult>, form: FormData) =>
-    startTransition(async () => {
-      setError(null);
-      const result = await action(form);
-      if (result.ok) onClose();
-      else setError(result.error);
-    });
-
-  const remove = () => {
-    if (!window.confirm(`Remove ${row.name} from your climbed hills?`)) return;
-    const form = new FormData();
-    form.set("hillId", String(row.id));
-    run(removeAscentAction, form);
-  };
-
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        run(saveAscentAction, new FormData(event.currentTarget));
-      }}
-      className="mt-3 space-y-3 rounded-lg border border-line bg-canvas p-4 sm:ml-8"
-    >
-      <input type="hidden" name="hillId" value={row.id} />
-      <div>
-        <label htmlFor={`climbed-on-${row.id}`} className="block text-sm font-medium">
-          Date climbed
-        </label>
-        <input
-          id={`climbed-on-${row.id}`}
-          type="date"
-          name="climbedOn"
-          required
-          min="1900-01-01"
-          max={addDays(today, 1)}
-          defaultValue={row.ascent?.climbedOn ?? today}
-          className="mt-1 rounded-lg border border-line bg-surface px-3 py-2"
-        />
-      </div>
-      <div>
-        <label htmlFor={`notes-${row.id}`} className="block text-sm font-medium">
-          Notes <span className="font-normal text-muted">(only you can see these)</span>
-        </label>
-        <textarea
-          id={`notes-${row.id}`}
-          name="notes"
-          rows={2}
-          maxLength={MAX_NOTES}
-          defaultValue={row.ascent?.notes ?? ""}
-          placeholder="Route, weather, who you went with…"
-          className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-2"
-        />
-      </div>
-      {error && (
-        <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm">
-          {error}
-        </p>
-      )}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-strong disabled:opacity-60"
-        >
-          {pending ? "Saving…" : "Save"}
-        </button>
-        <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-sm hover:bg-line/60">
-          Cancel
-        </button>
-        {row.ascent && (
-          <button
-            type="button"
-            onClick={remove}
-            disabled={pending}
-            className="ml-auto rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-danger-soft"
-          >
-            Remove
-          </button>
-        )}
-      </div>
-    </form>
   );
 }

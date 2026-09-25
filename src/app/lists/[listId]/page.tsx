@@ -36,7 +36,7 @@ export default async function ListPage({ params }: PageProps<"/lists/[listId]">)
         alsoOn: listsContaining(id)
           .filter((other) => other.id !== list.id)
           .map((other) => ({ id: other.id, name: other.name })),
-        ascent: ascent ? { climbedOn: ascent.climbedOn, notes: ascent.notes } : null,
+        ascent: ascent ? { climbed: ascent.climbed, notes: ascent.notes } : null,
       },
     ];
   });

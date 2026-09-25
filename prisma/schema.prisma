@@ -32,7 +32,10 @@ model Ascent {
   // database. Writes are checked against it instead.
   hillId    Int
   // A calendar date, not an instant: "climbed on 12 September" needs no time zone.
-  climbedOn DateTime @db.Date
+  // How much of it is known is in `precision`: for a climb remembered only by
+  // year it holds 1 January of that year, and for an unknown date it's null.
+  climbedOn DateTime?     @db.Date
+  precision DatePrecision @default(DAY)
   // Private to the owner; never shown on public pages.
   notes     String?
 
@@ -42,4 +45,12 @@ model Ascent {
   // One record per hill: the date it was bagged. Repeat ascents would drop this.
   @@unique([userId, hillId])
   @@index([userId, climbedOn])
+}
+
+// Old climbs are often remembered only by year, or not at all. Recording a
+// guessed date instead would quietly distort anything charting progress over time.
+enum DatePrecision {
+  DAY
+  YEAR
+  UNKNOWN
 }

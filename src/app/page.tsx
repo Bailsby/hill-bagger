@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { ClimbDateLabel } from "@/components/climb-date-label";
 import { ProgressBar } from "@/components/progress-bar";
-import { formatCalendarDate } from "@/lib/dates";
+import { isDated } from "@/lib/climb-date";
 import { formatHeight } from "@/lib/format";
 import { hillLists, hillsById, listProgress, listsContaining } from "@/lib/hills";
 import { getProgress } from "@/lib/progress";
@@ -11,6 +12,9 @@ export default async function Home() {
   const { ownerName, ascents, history, canEdit } = await getProgress();
   const firstName = ownerName?.split(" ")[0];
   const climbed = new Set(ascents.keys());
+  // "Latest" and "recent" only mean something for climbs with a date.
+  const dated = history.filter((ascent) => isDated(ascent.climbed));
+  const latest = dated[0];
   const complete = hillLists.filter((list) => {
     const { done, total } = listProgress(list, climbed);
     return done === total;
@@ -39,15 +43,13 @@ export default async function Home() {
         <div className="col-span-2 rounded-xl border border-line bg-surface p-4 sm:col-span-1">
           <dt className="text-sm text-muted">Latest</dt>
           <dd className="mt-1 font-semibold">
-            {history[0] ? (
+            {latest ? (
               <>
-                {hillsById.get(history[0].hillId)?.name}
-                <span className="block text-sm font-normal text-muted">
-                  {formatCalendarDate(history[0].climbedOn)}
-                </span>
+                {hillsById.get(latest.hillId)?.name}
+                <ClimbDateLabel climbed={latest.climbed} className="block text-sm font-normal text-muted" />
               </>
             ) : (
-              <span className="font-normal text-muted">Nothing yet</span>
+              <span className="font-normal text-muted">{history.length > 0 ? "No dates recorded" : "Nothing yet"}</span>
             )}
           </dd>
         </div>
@@ -77,14 +79,14 @@ export default async function Home() {
       </ul>
 
       <h2 className="mt-12 text-xl font-semibold">Recently climbed</h2>
-      {history.length === 0 ? (
+      {dated.length === 0 ? (
         <p className="mt-4 rounded-xl border border-line bg-surface p-5 text-muted">
-          No climbs recorded yet.
-          {canEdit && " Open a list and mark the hills you've climbed."}
+          {history.length === 0 ? "No climbs recorded yet." : "None of the recorded climbs has a date yet."}
+          {canEdit && history.length === 0 && " Open a list and mark the hills you've climbed."}
         </p>
       ) : (
         <ol className="mt-4 divide-y divide-line rounded-xl border border-line bg-surface">
-          {history.slice(0, RECENT).map((ascent) => {
+          {dated.slice(0, RECENT).map((ascent) => {
             const hill = hillsById.get(ascent.hillId);
             if (!hill) return null;
             return (
@@ -98,9 +100,7 @@ export default async function Home() {
                       .join(" · ")}
                   </span>
                 </div>
-                <time dateTime={ascent.climbedOn} className="text-sm tabular-nums text-muted">
-                  {formatCalendarDate(ascent.climbedOn)}
-                </time>
+                <ClimbDateLabel climbed={ascent.climbed} className="text-sm tabular-nums text-muted" />
               </li>
             );
           })}

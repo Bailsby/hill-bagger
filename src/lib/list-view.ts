@@ -1,12 +1,12 @@
 import type { Hill, ListId } from "@/data/hill-data";
-import type { CalendarDate } from "./dates";
+import type { ClimbDate } from "./climb-date";
 
 /** A hill as a list page shows it, with the other lists it also counts towards. */
 export type HillRow = Hill & { alsoOn: { id: ListId; name: string }[] };
 
 /** A row on a list page: the hill, and when it was climbed if it has been. */
 export type ListRow = HillRow & {
-  ascent: { climbedOn: CalendarDate; notes: string | null } | null;
+  ascent: { climbed: ClimbDate; notes: string | null } | null;
 };
 
 export type SortKey = "height" | "name";
