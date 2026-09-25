@@ -74,6 +74,11 @@ owner has climbed and when; only the owner can sign in and record climbs.
   so they're recorded from the start rather than bolted on. A climb is stored as a
   calendar date, not a timestamp: "climbed on 12 September" shouldn't shift by a day for
   someone reading it in another time zone.
+- **A date is only as precise as the memory.** Old climbs often survive only as a year,
+  or not at all, and a guessed date would quietly distort anything that charts progress.
+  So each climb records its precision: an exact day, a year (stored as its 1 January), or
+  unknown (no date). A database check keeps the date and its precision consistent.
+  Undated climbs still count towards every list, but can't appear on a timeline.
 - **Notes are private.** Dates are public; notes (route, weather, company) are shown only
   to the owner, and public pages never load them.
 - **Progress lives in Postgres**, so it's the same on every device and survives a
@@ -96,22 +101,47 @@ sign in: a misconfigured deployment is read-only rather than open.
 Climbs are still stored against a user record, not globally. Opening the app to other
 people later would add sign-up and per-person pages, without reworking the data.
 
+## The map: Ordnance Survey tiles through Leaflet
+
+The base map is Ordnance Survey's **Outdoor** style, the map British walkers already
+know, from the OS Maps API on its free OpenData plan. That plan is unlimited and free for
+any use, but covers zoom levels 7–16 only; the most detailed levels need a paid plan.
+
+- **What the free levels show.** They're built from OS Open Zoomstack: contours every
+  10 m, woodland, water, roads and place names, but no footpaths and no summit labels.
+  The app's own markers supply the summits, which is what a map of progress needs.
+  Footpaths would need a paid plan or another provider.
+- **Fitting Britain on screen.** The whole country only fits at zoom 6, one level below
+  what OS serves. The map allows zoom 6 and Leaflet shows the zoom-7 tiles scaled down
+  there, rather than requesting tiles that don't exist.
+- **The API key is public.** It's in every tile URL, as with any browser map. On the
+  OpenData plan that costs nothing if copied, so it isn't proxied through the server.
+- **Why not the others.** MapTiler's free tier suspends the map for the rest of the month
+  after 5,000 sessions. OpenTopoMap runs on community servers with known capacity
+  problems. The standard OpenStreetMap tiles are street-focused, and their usage policy
+  discourages this kind of use.
+- **Why Leaflet.** It's small, mature, and draws the 636 markers on a canvas without
+  strain. Summits are plain circles, climbed ones filled, so no marker images are needed.
+
+Canvas markers can't be reached by keyboard, so the map has a search box that selects and
+flies to a summit, and every list page holds the same information in an accessible form.
+
 ## Done
 
 1. **Data.** DoBIH import script, the six lists (636 distinct hills), and tests that
    check list sizes, that ids resolve, and that the overlaps come out as expected.
 2. **Lists and progress.** Public overview and list pages, with progress per list, the
    most recent climbs, and search, filter and sort on each list. GitHub sign-in for the
-   owner, who can record a climb with its date and private notes, correct it, or remove
-   it. Database tests run against real Postgres.
+   owner, who can record a climb with its date (exact, year only or unknown) and private
+   notes, correct it, or remove it. Database tests run against real Postgres.
+3. **Map.** Every summit on an OS map, climbed ones filled, filterable by list and by
+   climbed or not, with search. Selecting a summit shows its details, and lets the owner
+   record the climb from the map.
 
 ## Planned
 
 Roughly in order.
 
-3. **Map.** Every summit on a map, coloured by climbed or not, filterable by list. The
-   mapping library and tile provider are still to be chosen: free-tier limits and licence
-   terms decide it.
 4. **Progress over time.** Climbs per year, how each list filled in, and a timeline.
 5. **Extras.** Photos per climb, a shareable progress summary, and perhaps repeat ascents.
 

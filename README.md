@@ -2,8 +2,9 @@
 
 A personal record of bagging British hill lists: the Munros, Wainwrights, Welsh
 3000s, Ethels, Yorkshire Three Peaks and Dales 30. Every climb is recorded with its date,
-and a hill on several lists counts on each of them. Anyone can browse the lists and see
-the progress; only the owner can sign in to record climbs.
+or just the year, or no date where it isn't remembered, and a hill on several lists
+counts on each of them. The lists and a map of every summit are public to browse; only
+the owner can sign in to record climbs.
 
 **Status: in development.** See [ROADMAP.md](ROADMAP.md) for the plan and the design
 decisions behind it.
@@ -30,16 +31,23 @@ The lists and progress are viewable without signing in. To record climbs you nee
 - `OWNER_GITHUB_ID`: the numeric id of the one GitHub account allowed to sign in, from
   `https://api.github.com/users/<username>`.
 
+For the map's Ordnance Survey background, set `OS_MAPS_API_KEY` to a key from a project on
+the free OpenData plan at [osdatahub.os.uk](https://osdatahub.os.uk). Without it, the map
+shows the summits on a blank background.
+
 `npm test` runs the unit tests, and `npm run test:db` runs the database tests on a
 separate test database, which it creates automatically. `npm run lint` and
 `npm run typecheck` check the code.
 
-## Hill data
+## Data and mapping
 
 Summit names, heights, grid references and positions come from **The Database of
 British and Irish Hills v18.6**,
 [www.hill-bagging.co.uk/dobih](https://www.hill-bagging.co.uk/dobih), licensed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+Map tiles are Ordnance Survey's, from the OS Maps API. Contains OS data © Crown
+copyright and database right.
 
 The app uses a generated extract, [`src/data/hills.json`](src/data/hills.json): the
 636 hills on its six lists. To regenerate it from a new DoBIH release:
