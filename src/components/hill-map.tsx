@@ -27,6 +27,11 @@ import { ClimbDateLabel } from "./climb-date-label";
 const CLIMBED = "#2f5d46";
 const NOT_YET = "#1d2a22";
 
+// OS tiles stop a little way offshore. Filling the rest with OS's own sea colour
+// hides the edge when zoomed out; Leaflet's stylesheet would otherwise paint it grey.
+const OS_SEA = "#a9ddef";
+const NO_TILES = "#e8ece4";
+
 const showOptions: [Show, string][] = [
   ["all", "All"],
   ["todo", "Not yet"],
@@ -223,7 +228,8 @@ export function HillMap({
           ref={containerRef}
           role="region"
           aria-label="Map of summits"
-          className="h-[65vh] min-h-96 overflow-hidden rounded-xl border border-line bg-[#e8ece4]"
+          className="h-[65vh] min-h-96 overflow-hidden rounded-xl border border-line"
+          style={{ background: osApiKey ? OS_SEA : NO_TILES }}
         />
 
         <aside className="rounded-xl border border-line bg-surface p-4">
