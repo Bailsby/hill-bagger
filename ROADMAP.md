@@ -45,8 +45,24 @@ The data is small (a few hundred summits), so it's generated into a static JSON 
 a script and committed. The app needs no database to show the lists or the map, and a
 DoBIH update is a script run plus a reviewable diff.
 
-To confirm before first release: the exact licence version and attribution wording on
-the DoBIH downloads page, and the current membership of the three hand-defined lists.
+DoBIH is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The
+attribution it asks for (database name, version and a link) is in the README and
+travels in the data file, so the UI can show it too.
+
+Each list definition records how many hills it should have, and the import refuses to
+write data that disagrees. Lists do change: Munros are occasionally promoted or demoted
+after a resurvey. When that happens, a person should look at the difference rather than
+the data quietly updating.
+
+How the three hand-defined lists were pinned down, against DoBIH v18.6:
+
+- **Welsh 3000s**: exactly the Welsh Hewitts over 914.4 m. Castell y Gwynt clears
+  the height but is a subsidiary top, not a separate hill.
+- **Dales 30**: defined as the Hewitts inside the Yorkshire Dales National Park. DoBIH
+  has no park boundary, so the thirty are pinned by number: DoBIH's Dales Hewitts, less
+  Nine Standards Rigg, which lies just outside the park. Published versions name one
+  summit either Wether Fell or Drumaldrace, which is the same hill.
+- **Yorkshire Three Peaks**: Whernside, Ingleborough and Pen-y-ghent.
 
 ## Progress starts on the device
 
@@ -59,12 +75,15 @@ server-side storage later changes where ticks are kept, not the code that uses t
 accounts arrive, a first sign-in merges the device's ticks into the account rather than
 choosing one over the other.
 
+## Done
+
+1. **Data.** DoBIH import script, the six lists (636 distinct hills), and tests that
+   check list sizes, that ids resolve, and that the overlaps come out as expected.
+
 ## Planned
 
 Roughly in order.
 
-1. **Data.** DoBIH import script, the six lists, and tests that check list sizes, that
-   ids resolve, and that the overlaps come out as expected.
 2. **Lists and ticking.** Browse each list sorted by name or height, tick hills off,
    and see progress per list. Stored on the device, with export and import.
 3. **Map.** Every summit on a map, coloured by done or not done, filterable by list,
