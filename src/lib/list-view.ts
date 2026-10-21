@@ -9,7 +9,7 @@ export type ListRow = HillRow & {
   ascent: { climbed: ClimbDate; notes: string | null } | null;
 };
 
-export type SortKey = "height" | "name";
+export type SortKey = "height" | "name" | "recent";
 export type Show = "all" | "todo" | "done";
 
 export type ViewOptions = { sort: SortKey; show: Show; query: string };
@@ -24,7 +24,25 @@ const normalise = (text: string) =>
 const byHeight = (a: HillRow, b: HillRow) => b.metres - a.metres || a.name.localeCompare(b.name, "en-GB");
 const byName = (a: HillRow, b: HillRow) => a.name.localeCompare(b.name, "en-GB") || b.metres - a.metres;
 
-export const viewHills = <T extends HillRow>(
+/**
+ * Orders climbs newest first as plain strings: an exact date beats a
+ * year-only climb in the same year (it's the more certain of the two), and
+ * any dated climb beats one with no date, which beats a hill not climbed.
+ */
+const recency = (row: Partial<Pick<ListRow, "ascent">>): string => {
+  const climbed = row.ascent?.climbed;
+  if (!climbed) return "";
+  if (climbed.precision === "day") return climbed.date;
+  if (climbed.precision === "year") return `${climbed.year}-00-00`;
+  return "0";
+};
+
+const byRecent = (a: HillRow & Partial<Pick<ListRow, "ascent">>, b: HillRow & Partial<Pick<ListRow, "ascent">>) =>
+  recency(b).localeCompare(recency(a)) || byHeight(a, b);
+
+const SORTS = { height: byHeight, name: byName, recent: byRecent } as const;
+
+export const viewHills = <T extends HillRow & Partial<Pick<ListRow, "ascent">>>(
   rows: readonly T[],
   climbed: Climbed,
   { sort, show, query }: ViewOptions,
@@ -36,5 +54,5 @@ export const viewHills = <T extends HillRow>(
       (row) =>
         needle === "" || normalise(row.name).includes(needle) || normalise(row.area).includes(needle),
     )
-    .sort(sort === "height" ? byHeight : byName);
+    .sort(SORTS[sort]);
 };

@@ -31,6 +31,17 @@ describe("viewHills", () => {
     expect(names(viewHills(rows, new Set(), { ...all, sort: "name" }))).toEqual([2, 4, 3, 1]);
   });
 
+  it("sorts most recently climbed first, least certain dates last", () => {
+    const withAscents = [
+      { ...rows[0], ascent: { climbed: { precision: "year" as const, year: 2024 }, notes: null } },
+      { ...rows[1], ascent: { climbed: { precision: "day" as const, date: "2024-06-01" }, notes: null } },
+      { ...rows[2], ascent: null },
+      { ...rows[3], ascent: { climbed: { precision: "unknown" as const }, notes: null } },
+      { ...row(5, "Schiehallion", 1083), ascent: { climbed: { precision: "day" as const, date: "2025-03-09" }, notes: null } },
+    ];
+    expect(names(viewHills(withAscents, new Set(), { ...all, sort: "recent" }))).toEqual([5, 2, 1, 4, 3]);
+  });
+
   it("shows only done or only to-do hills", () => {
     const ticks = new Set([1, 3]);
     expect(names(viewHills(rows, ticks, { ...all, show: "done" }))).toEqual([1, 3]);
