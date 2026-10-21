@@ -5,8 +5,16 @@ import type { CalendarDate } from "@/lib/dates";
 import { formatGridRef, formatHeight } from "@/lib/format";
 import { viewHills, type ListRow, type Show, type SortKey } from "@/lib/list-view";
 import { AscentEditor } from "./ascent-editor";
+import { Collapsible } from "./collapsible";
+import { Select } from "./select";
 import { ClimbDateLabel } from "./climb-date-label";
 import { StatusIcon } from "./status-icon";
+
+const sortOptions = [
+  ["height", "Highest first"],
+  ["name", "A to Z"],
+  ["recent", "Most recent"],
+] as const satisfies readonly (readonly [SortKey, string])[];
 
 const showOptions: [Show, string][] = [
   ["all", "All"],
@@ -65,15 +73,7 @@ export function HillList({
               </label>
             ))}
           </fieldset>
-          <select
-            value={sort}
-            onChange={(event) => setSort(event.target.value as SortKey)}
-            aria-label="Sort"
-            className="rounded-lg border border-line bg-surface px-2 py-2 text-sm"
-          >
-            <option value="height">Highest first</option>
-            <option value="name">A to Z</option>
-          </select>
+          <Select value={sort} options={sortOptions} onChange={setSort} label="Sort" className="w-40" />
         </div>
       </div>
 
@@ -85,55 +85,81 @@ export function HillList({
         <p className="mt-3 rounded-xl border border-line bg-surface p-5 text-muted">No hills match.</p>
       ) : (
         <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-surface">
-          {visible.map((row) => (
-            <li key={row.id} id={`hill-${row.id}`} className="px-4 py-3 sm:px-5">
-              <div className="flex items-start gap-3">
+          {visible.map((row) => {
+            const open = editing === row.id;
+            // Spans rather than paragraphs: when you can edit, this sits inside a button.
+            const summary = (
+              <>
                 <StatusIcon climbed={row.ascent !== null} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{row.name}</p>
-                  <p className="text-sm text-muted">
+                <span className="block min-w-0 flex-1">
+                  <span className="block font-medium">{row.name}</span>
+                  <span className="block text-sm text-muted">
                     {formatHeight(row.metres)} · {row.area} ·{" "}
                     <span className="whitespace-nowrap font-mono text-xs">{formatGridRef(row.gridRef)}</span>
-                  </p>
+                  </span>
                   {row.alsoOn.length > 0 && (
-                    <p className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
+                    <span className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
                       <span className="text-muted">Also on</span>
                       {row.alsoOn.map((list) => (
                         <span key={list.id} className="rounded-full bg-brand-soft px-2 py-0.5 text-brand-strong">
                           {list.name}
                         </span>
                       ))}
-                    </p>
+                    </span>
                   )}
                   {canEdit && row.ascent?.notes && (
-                    <p className="mt-1.5 whitespace-pre-line text-sm text-ink/80">{row.ascent.notes}</p>
+                    <span className="mt-1.5 block whitespace-pre-line text-sm text-ink/80">{row.ascent.notes}</span>
                   )}
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-1">
                   {row.ascent ? (
                     <ClimbDateLabel climbed={row.ascent.climbed} className="text-sm font-medium text-brand tabular-nums" />
                   ) : (
                     <span className="text-sm text-muted">Not yet</span>
                   )}
                   {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => setEditing(editing === row.id ? null : row.id)}
-                      aria-expanded={editing === row.id}
-                      className="text-sm font-medium text-brand underline-offset-2 hover:underline"
-                    >
-                      {row.ascent ? "Edit" : "Mark climbed"}
-                    </button>
+                    <span className="flex items-center gap-1 text-sm font-medium text-brand">
+                      {open ? "Close" : row.ascent ? "Edit" : "Mark climbed"}
+                      <svg
+                        viewBox="0 0 20 20"
+                        aria-hidden="true"
+                        className={`size-4 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+                      >
+                        <path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
                   )}
-                </div>
-              </div>
-              {canEdit && editing === row.id && (
-                <div className="mt-3 sm:ml-8">
-                  <AscentEditor hill={row} ascent={row.ascent} today={today} onClose={() => setEditing(null)} />
-                </div>
-              )}
-            </li>
-          ))}
+                </span>
+              </>
+            );
+
+            return (
+              <li key={row.id} id={`hill-${row.id}`}>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditing(open ? null : row.id)}
+                    aria-expanded={open}
+                    aria-controls={`editor-${row.id}`}
+                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-canvas focus-visible:bg-canvas focus-visible:outline-none sm:px-5 ${
+                      open ? "bg-canvas" : ""
+                    }`}
+                  >
+                    {summary}
+                  </button>
+                ) : (
+                  <div className="flex items-start gap-3 px-4 py-3 sm:px-5">{summary}</div>
+                )}
+                {canEdit && (
+                  <Collapsible open={open} id={`editor-${row.id}`}>
+                    <div className="bg-canvas px-4 pb-4 sm:pl-13 sm:pr-5">
+                      <AscentEditor hill={row} ascent={row.ascent} today={today} onClose={() => setEditing(null)} />
+                    </div>
+                  </Collapsible>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
