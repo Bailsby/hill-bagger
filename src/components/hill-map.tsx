@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import type * as Leaflet from "leaflet";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { ListId } from "@/data/hill-data";
 import type { CalendarDate } from "@/lib/dates";
 import { formatGridRef, formatHeight } from "@/lib/format";
@@ -21,6 +21,29 @@ import {
 } from "@/lib/map-view";
 import { AscentEditor } from "./ascent-editor";
 import { ClimbDateLabel } from "./climb-date-label";
+
+// Matches Tailwind's `lg` breakpoint, where the side panel sits beside the map.
+const DESKTOP_QUERY = "(min-width: 1024px)";
+
+const subscribeToDesktop = (onChange: () => void) => {
+  const query = window.matchMedia(DESKTOP_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+
+/**
+ * Below `lg` the side panel stacks under a map that fills most of the screen,
+ * so a tapped summit's details (and its "Mark climbed" button) would update out
+ * of sight. Phones get them in a card over the map instead.
+ */
+function useIsDesktop(): boolean {
+  return useSyncExternalStore(
+    subscribeToDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    // Nothing is selected on the server render, so the choice doesn't show yet.
+    () => true,
+  );
+}
 
 // Leaflet paints markers on a canvas, so colours are literal values. They match
 // --color-brand and --color-ink in globals.css.
@@ -73,6 +96,7 @@ export function HillMap({
   const selected = hills.find((hill) => hill.id === selectedId) ?? null;
   const results = useMemo(() => searchHills(visible, query), [visible, query]);
   const selectedLists = selected ? lists.filter((list) => selected.listIds.includes(list.id)) : [];
+  const isDesktop = useIsDesktop();
 
   // Create the map once. Leaflet needs `window`, so it's imported here rather
   // than at the top, keeping it out of the server render.
@@ -170,6 +194,67 @@ export function HillMap({
     map?.flyTo([hill.lat, hill.lng], Math.max(map.getZoom(), 12), { duration: 0.8 });
   };
 
+  const details = selected ? (
+    <div>
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="font-semibold">{selected.name}</h2>
+        <button
+          type="button"
+          onClick={() => setSelectedId(null)}
+          aria-label="Close"
+          className="-mr-1 -mt-1 rounded px-2 text-lg leading-none text-muted hover:text-ink"
+        >
+          ×
+        </button>
+      </div>
+      <p className="mt-1 text-sm text-muted">
+        {formatHeight(selected.metres)}
+        <br />
+        {selected.area} · <span className="whitespace-nowrap font-mono text-xs">{formatGridRef(selected.gridRef)}</span>
+      </p>
+      <p className="mt-2 flex flex-wrap gap-1 text-xs">
+        {selectedLists.map((list) => (
+          <span key={list.id} className="rounded-full bg-brand-soft px-2 py-0.5 text-brand-strong">
+            {list.name}
+          </span>
+        ))}
+      </p>
+      <p className="mt-3 text-sm">
+        {selected.ascent ? (
+          <>
+            Climbed:{" "}
+            <ClimbDateLabel climbed={selected.ascent.climbed} className="font-medium text-brand" />
+          </>
+        ) : (
+          <span className="text-muted">Not climbed yet</span>
+        )}
+      </p>
+      {canEdit && selected.ascent?.notes && (
+        <p className="mt-2 whitespace-pre-line text-sm text-ink/80">{selected.ascent.notes}</p>
+      )}
+      {canEdit &&
+        (editing ? (
+          <div className="mt-3">
+            <AscentEditor
+              key={selected.id}
+              hill={selected}
+              ascent={selected.ascent}
+              today={today}
+              onClose={() => setEditing(false)}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="mt-3 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-strong"
+          >
+            {selected.ascent ? "Edit climb" : "Mark climbed"}
+          </button>
+        ))}
+    </div>
+  ) : null;
+
   return (
     <div>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -224,13 +309,21 @@ export function HillMap({
       )}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div
-          ref={containerRef}
-          role="region"
-          aria-label="Map of summits"
-          className="h-[65vh] min-h-96 overflow-hidden rounded-xl border border-line"
-          style={{ background: osApiKey ? OS_SEA : NO_TILES }}
-        />
+        <div className="relative">
+          <div
+            ref={containerRef}
+            role="region"
+            aria-label="Map of summits"
+            className="h-[65vh] min-h-96 overflow-hidden rounded-xl border border-line"
+            style={{ background: osApiKey ? OS_SEA : NO_TILES }}
+          />
+          {!isDesktop && details && (
+            // Above Leaflet's panes and controls (z-index up to 1000).
+            <div className="absolute inset-x-2 bottom-2 z-[1001] max-h-[75%] overflow-y-auto rounded-xl border border-line bg-surface p-4 shadow-lg">
+              {details}
+            </div>
+          )}
+        </div>
 
         <aside className="rounded-xl border border-line bg-surface p-4">
           <label htmlFor="map-search" className="text-sm font-medium">
@@ -267,65 +360,8 @@ export function HillMap({
           )}
 
           <div className="mt-5 border-t border-line pt-4">
-            {selected ? (
-              <div>
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-semibold">{selected.name}</h2>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(null)}
-                    aria-label="Close"
-                    className="-mr-1 -mt-1 rounded px-2 text-lg leading-none text-muted hover:text-ink"
-                  >
-                    ×
-                  </button>
-                </div>
-                <p className="mt-1 text-sm text-muted">
-                  {formatHeight(selected.metres)}
-                  <br />
-                  {selected.area} · <span className="whitespace-nowrap font-mono text-xs">{formatGridRef(selected.gridRef)}</span>
-                </p>
-                <p className="mt-2 flex flex-wrap gap-1 text-xs">
-                  {selectedLists.map((list) => (
-                    <span key={list.id} className="rounded-full bg-brand-soft px-2 py-0.5 text-brand-strong">
-                      {list.name}
-                    </span>
-                  ))}
-                </p>
-                <p className="mt-3 text-sm">
-                  {selected.ascent ? (
-                    <>
-                      Climbed:{" "}
-                      <ClimbDateLabel climbed={selected.ascent.climbed} className="font-medium text-brand" />
-                    </>
-                  ) : (
-                    <span className="text-muted">Not climbed yet</span>
-                  )}
-                </p>
-                {canEdit && selected.ascent?.notes && (
-                  <p className="mt-2 whitespace-pre-line text-sm text-ink/80">{selected.ascent.notes}</p>
-                )}
-                {canEdit &&
-                  (editing ? (
-                    <div className="mt-3">
-                      <AscentEditor
-                        key={selected.id}
-                        hill={selected}
-                        ascent={selected.ascent}
-                        today={today}
-                        onClose={() => setEditing(false)}
-                      />
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setEditing(true)}
-                      className="mt-3 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-strong"
-                    >
-                      {selected.ascent ? "Edit climb" : "Mark climbed"}
-                    </button>
-                  ))}
-              </div>
+            {isDesktop && details ? (
+              details
             ) : (
               <div className="text-sm">
                 <p className="text-muted">Select a summit on the map, or find one by name.</p>
